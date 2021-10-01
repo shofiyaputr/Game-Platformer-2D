@@ -9,10 +9,16 @@ public class PlayerController : MonoBehaviour
     bool isDead = false;
     int idMove = 0;
     Animator anim;
+    public GameObject Projectile;
+    public Vector2 projectileVelocity;
+    public Vector2 projectileOffset;
+    public float cooldown = 0.5f;
+    bool isCanShoot = true;
 
     private void Start()
     {
         anim = GetComponent<Animator>();
+        isCanShoot = true;
     }
 
     void Update()
@@ -38,8 +44,29 @@ public class PlayerController : MonoBehaviour
         {
             Idle();
         }
-        Move();
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            Fire();
+        }
+            Move();
         Dead();
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.transform.tag.Equals("Coin"))
+        {
+            Data.score += 15;
+            Destroy(collision.gameObject);
+        }
+        if (collision.transform.tag.Equals("Peluru"))
+        {
+            isCanShoot = true;
+        }
+        if (collision.transform.tag.Equals("Enemy"))
+        {
+            isDead = true;
+        }
     }
 
     private void OnCollisionStay2D(Collision2D collision)
@@ -47,19 +74,19 @@ public class PlayerController : MonoBehaviour
         // Kondisi ketika menyentuh tanah
         if (isJump)
         {
-                anim.ResetTrigger("jump");
-                if (idMove == 0) anim.SetTrigger("idle");
-                isJump = false;
+            anim.ResetTrigger("jump");
+            if (idMove == 0) anim.SetTrigger("idle");
+            isJump = false;
         }
     }
 
     private void OnCollisionExit2D(Collision2D collision)
     {
-         // Kondisi ketika menyentuh tanah
-         anim.SetTrigger("jump");
-         anim.ResetTrigger("run");
-         anim.ResetTrigger("idle");
-         isJump = true;
+        // Kondisi ketika menyentuh tanah
+        anim.SetTrigger("jump");
+        anim.ResetTrigger("run");
+        anim.ResetTrigger("idle");
+        isJump = true;
     }
 
     public void MoveRight()
@@ -99,15 +126,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-         if (collision.transform.tag.Equals("Coin"))
-         {
-            //Data.score += 15;
-            Destroy(collision.gameObject);
-         }
-    }
-
     public void Idle()
     {
           // kondisi ketika idle/diam
@@ -122,13 +140,34 @@ public class PlayerController : MonoBehaviour
 
     private void Dead()
     {
-          if (!isDead)
-          {
-                if (transform.position.y < -10f)
-                {
-                    // kondisi ketika jatuh
-                    isDead = true;
-                }
-          }
+        if (!isDead)
+        {
+            if (transform.position.y < -10f)
+            {
+                // kondisi ketika jatuh
+                isDead = true;
+            }
+        }
+    }
+
+    void Fire()
+    {
+        if (isCanShoot)
+        {
+            GameObject bullet = Instantiate(Projectile, (Vector2)transform.position - projectileOffset * transform.localScale.x, Quaternion.identity);
+            Vector2 velocity = new Vector2(projectileVelocity.x * transform.localScale.x, projectileVelocity.y);
+            Vector3 scale = transform.localScale;
+            bullet.transform.localScale = scale * -1;
+            StartCoroutine(CanShoot());
+            anim.SetTrigger("shoot");
+        }
+    }
+
+    IEnumerator CanShoot()
+    {
+        anim.SetTrigger("shoot");
+        isCanShoot = false;
+        yield return new WaitForSeconds(cooldown);
+        isCanShoot = true;
     }
 }
